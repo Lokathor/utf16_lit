@@ -7,7 +7,5 @@ authors = ["Lokathor <zefria@gmail.com>"]
 edition = "2018"
 license = "Zlib"
 
-[dependencies]
-
 [lib]
 proc-macro = true
