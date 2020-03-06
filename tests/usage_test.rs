@@ -42,6 +42,20 @@ fn test_null() {
   assert_eq!(normal, NULL);
 }
 
+utf16_lit!(SINGLE_QUOTE, "\'");
+#[test]
+fn test_single_quote() {
+  let normal: Vec<u16> = "\'".encode_utf16().collect();
+  assert_eq!(normal, SINGLE_QUOTE);
+}
+
+utf16_lit!(DOUBLE_QUOTE, "\"");
+#[test]
+fn test_double_quote() {
+  let normal: Vec<u16> = "\"".encode_utf16().collect();
+  assert_eq!(normal, DOUBLE_QUOTE);
+}
+
 utf16_lit!(ESCAPED_ASCII, "\x52");
 #[test]
 fn test_escaped_ascii() {
