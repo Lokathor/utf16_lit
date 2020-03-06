@@ -32,8 +32,13 @@ use char_escape::perform_the_escaping;
 
 /// Makes a `&[u16]` const.
 ///
-/// * **Usage:** `utf16_lit!(ident, string_lit)`
-/// * **Output:** `pub const ident: &[u16] = string_as_utf16;`
+/// * **Usage:**
+///   * Statement: `utf16_lit!(IDENT, string_literal);`
+///   * Expands to: `pub const IDENT: &[u16] = utf16_string_literal;`
+///
+/// If you wish to have a "null terminated" string (such as for Windows FFI)
+/// then you must put a `\0` at the end of your string manually. Future versions
+/// of this lib will offer a proc-macro that can add in the null for you.
 #[proc_macro]
 pub fn utf16_lit(stream: TokenStream) -> TokenStream {
   const USAGE: &str = "Usage: utf16_lit!(ident, string_lit)";
