@@ -7,6 +7,19 @@ use proc_macro::{TokenStream, TokenTree};
 mod char_escape;
 use char_escape::perform_the_escaping;
 
+/// Makes a `&[u16]` const.
+///
+/// * **Usage:** `utf16_lit!(ident, string_lit)`
+/// * **Output:** `pub const ident: &[u16] = string_as_utf16;`
+///
+/// Currently "function-like" proc macros can't be used in expression or
+/// statement position, only item position. This means that the ergonomics of
+/// this proc-macro are quite poor at the moment. Once the proc-macro situation
+/// improves we can make this proc-macro more "natural" to use.
+///
+/// In the future I hope to slim it down so that it's just a string literal to
+/// `&[u16]` conversion, without needing to pass in idents to make constants or
+/// any of that.
 #[proc_macro]
 pub fn utf16_lit(stream: TokenStream) -> TokenStream {
   const USAGE: &str = "Usage: utf16_lit!(ident, string_lit)";
