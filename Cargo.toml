@@ -1,0 +1,13 @@
+[package]
+name = "utf16_lit"
+description = "Proc-macro to make utf-16 literals."
+version = "0.0.0-alpha"
+repository = "https://github.com/Lokathor/utf16_lit"
+authors = ["Lokathor <zefria@gmail.com>"]
+edition = "2018"
+license = "Zlib"
+
+[dependencies]
+
+[lib]
+proc-macro = true
