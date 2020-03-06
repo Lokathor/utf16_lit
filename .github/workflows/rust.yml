@@ -1,0 +1,17 @@
+name: Rust
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Display Versions
+      run: cargo --version && rustc --version
+    - name: Build
+      run: cargo build --verbose --no-default-features
+    - name: Run tests
+      run: cargo test --verbose --no-default-features
