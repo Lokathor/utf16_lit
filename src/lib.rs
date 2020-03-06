@@ -1,5 +1,28 @@
 #![allow(bad_style)]
 
+//! Provides a proc-macro for making utf-16 literals.
+//! 
+//! ```rust
+//! use utf16_lit::utf16_lit;
+//! 
+//! // must be an item!
+//! utf16_lit!(EXAMPLE, "example");
+//! 
+//! fn main() {
+//!   let v: Vec<u16> = "example".encode_utf16().collect();
+//!   assert_eq!(v, EXAMPLE);
+//! }
+//! ```
+//!
+//! Currently "function-like" proc macros can't be used in expression or
+//! statement position, only item position. This means that the ergonomics of
+//! this proc-macro are quite poor at the moment. Once the proc-macro situation
+//! improves we can make this proc-macro more "natural" to use.
+//!
+//! In the future I hope to slim it down so that it's just a string literal to
+//! `&[u16]` conversion, without needing to pass in idents to make constants or
+//! any of that.
+
 extern crate proc_macro;
 use core::str::FromStr;
 use proc_macro::{TokenStream, TokenTree};
@@ -11,15 +34,6 @@ use char_escape::perform_the_escaping;
 ///
 /// * **Usage:** `utf16_lit!(ident, string_lit)`
 /// * **Output:** `pub const ident: &[u16] = string_as_utf16;`
-///
-/// Currently "function-like" proc macros can't be used in expression or
-/// statement position, only item position. This means that the ergonomics of
-/// this proc-macro are quite poor at the moment. Once the proc-macro situation
-/// improves we can make this proc-macro more "natural" to use.
-///
-/// In the future I hope to slim it down so that it's just a string literal to
-/// `&[u16]` conversion, without needing to pass in idents to make constants or
-/// any of that.
 #[proc_macro]
 pub fn utf16_lit(stream: TokenStream) -> TokenStream {
   const USAGE: &str = "Usage: utf16_lit!(ident, string_lit)";
