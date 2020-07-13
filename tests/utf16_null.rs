@@ -1,71 +1,61 @@
 use utf16_lit::utf16_null;
 
-utf16_null!(EXAMPLE, "example");
 #[test]
 fn test_example() {
   let normal: Vec<u16> = "example".encode_utf16().chain(Some(0)).collect();
-  assert_eq!(normal, EXAMPLE);
+  assert_eq!(normal, utf16_null!("example"));
 }
 
-utf16_null!(TAB, "\t");
 #[test]
 fn test_tab() {
   let normal: Vec<u16> = "\t".encode_utf16().chain(Some(0)).collect();
-  assert_eq!(normal, TAB);
+  assert_eq!(normal, utf16_null!("\t"));
 }
 
-utf16_null!(NEWLINE, "\n");
 #[test]
 fn test_newline() {
   let normal: Vec<u16> = "\n".encode_utf16().chain(Some(0)).collect();
-  assert_eq!(normal, NEWLINE);
+  assert_eq!(normal, utf16_null!("\n"));
 }
 
-utf16_null!(CARRIAGE_RETURN, "\r");
 #[test]
 fn test_carriage_return() {
   let normal: Vec<u16> = "\r".encode_utf16().chain(Some(0)).collect();
-  assert_eq!(normal, CARRIAGE_RETURN);
+  assert_eq!(normal, utf16_null!("\r"));
 }
 
-utf16_null!(BACKSLASH, "\\");
 #[test]
 fn test_backslash() {
   let normal: Vec<u16> = "\\".encode_utf16().chain(Some(0)).collect();
-  assert_eq!(normal, BACKSLASH);
+  assert_eq!(normal, utf16_null!("\\"));
 }
 
-utf16_null!(NULL, "\0");
 #[test]
 fn test_null() {
   let normal: Vec<u16> = "\0".encode_utf16().chain(Some(0)).collect();
-  assert_eq!(normal, NULL);
+  assert_eq!(normal, utf16_null!("\0"));
 }
 
-utf16_null!(SINGLE_QUOTE, "\'");
 #[test]
 fn test_single_quote() {
   let normal: Vec<u16> = "\'".encode_utf16().chain(Some(0)).collect();
-  assert_eq!(normal, SINGLE_QUOTE);
+  assert_eq!(normal, utf16_null!("\'"));
 }
 
-utf16_null!(DOUBLE_QUOTE, "\"");
 #[test]
 fn test_double_quote() {
   let normal: Vec<u16> = "\"".encode_utf16().chain(Some(0)).collect();
-  assert_eq!(normal, DOUBLE_QUOTE);
+  assert_eq!(normal, utf16_null!("\""));
 }
 
-utf16_null!(ESCAPED_ASCII, "\x52");
 #[test]
 fn test_escaped_ascii() {
   let normal: Vec<u16> = "\x52".encode_utf16().chain(Some(0)).collect();
-  assert_eq!(normal, ESCAPED_ASCII);
+  assert_eq!(normal, utf16_null!("\x52"));
 }
 
-utf16_null!(ESCAPED_UNICODE, "\u{00B6}");
 #[test]
 fn test_escaped_unicode() {
   let normal: Vec<u16> = "\u{00B6}".encode_utf16().chain(Some(0)).collect();
-  assert_eq!(normal, ESCAPED_UNICODE);
+  assert_eq!(normal, utf16_null!("\u{00B6}"));
 }

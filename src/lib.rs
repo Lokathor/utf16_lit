@@ -1,32 +1,27 @@
 #![allow(bad_style)]
 
 //! Provides a proc-macro for making utf-16 literals.
-//! 
+//!
 //! ```rust
 //! use utf16_lit::{utf16, utf16_null};
-//! 
-//! // must be an item!
-//! utf16!(EXAMPLE, "example");
-//! 
-//! utf16_null!(EXAMPLE_NULL, "example");
-//! 
+//!
+//! const EXAMPLE: &[u16] = utf16!("example");
+//!
+//! const EXAMPLE_NULL: &[u16] = utf16_null!("example");
+//!
 //! fn main() {
 //!   let v: Vec<u16> = "example".encode_utf16().collect();
 //!   assert_eq!(v, EXAMPLE);
-//! 
+//!
 //!   let v: Vec<u16> = "example".encode_utf16().chain(Some(0)).collect();
 //!   assert_eq!(v, EXAMPLE_NULL);
+//!   let v: Vec<u16> = "example\0".encode_utf16().collect();
+//!   assert_eq!(v, EXAMPLE_NULL);
+//!
+//!   // You don't even need to assign the output to a const.
+//!   assert_eq!(utf16!("This works")[0], 'T' as u8 as u16);
 //! }
 //! ```
-//!
-//! Currently "function-like" proc macros can't be used in expression or
-//! statement position, only item position. This means that the ergonomics of
-//! this proc-macro are quite poor at the moment. Once the proc-macro situation
-//! improves we can make this proc-macro more "natural" to use.
-//!
-//! In the future I hope to slim it down so that it's just a string literal to
-//! `&[u16]` conversion, without needing to pass in idents to make constants or
-//! any of that.
 
 extern crate proc_macro;
 use core::str::FromStr;
@@ -35,31 +30,19 @@ use proc_macro::{TokenStream, TokenTree};
 mod char_escape;
 use char_escape::perform_the_escaping;
 
-/// Makes a `&[u16]` const.
-///
-/// * **Usage:**
-///   * Statement: `utf16!(IDENT, string_literal);`
-///   * Expands to: `pub const IDENT: &[u16] = utf16_string_literal;`
+/// Turns a string literal into a `&[u16]` literal.
 ///
 /// If you want to have a "null terminated" string (such as for some parts of
 /// Windows FFI) then you should use [`utf16_null`](utf16_null).
 #[proc_macro]
 pub fn utf16(stream: TokenStream) -> TokenStream {
-  const USAGE: &str = "Usage: utf16!(ident, string_lit)";
+  const USAGE: &str = "Usage: utf16!(string_lit)";
 
   // This "parsing" system is janky as hell, but it doesn't depend on the
   // `quote` or `syn` crates, so we save a lot on compile time at the expense of
   // having slightly worse errors. However, since the user usually calls the
   // macro correctly and doesn't have an error, it's probably a good trade.
   let mut tt_iter = stream.into_iter();
-  let ident = match tt_iter.next().expect(USAGE) {
-    TokenTree::Ident(i) => i,
-    _ => panic!(USAGE),
-  };
-  match tt_iter.next().expect(USAGE) {
-    TokenTree::Punct(p) if p.as_char() == ',' => (),
-    _ => panic!(USAGE),
-  };
   let lit = match tt_iter.next().expect(USAGE) {
     TokenTree::Literal(lit) => lit,
     _ => panic!(USAGE),
@@ -90,39 +73,23 @@ pub fn utf16(stream: TokenStream) -> TokenStream {
   // Finally, instead of trying to fiddle a TokenStream with extend and all
   // that, we just write down the text of the code we wanted to have had the
   // whole time and then we use `from_str` and let the system handle it for us.
-  let buf = format!(
-    "pub const {ident}: &[u16] = &{units:?};",
-    ident = ident,
-    units = &units[..],
-  );
+  let buf = format!("&{units:?}", units = &units[..],);
   TokenStream::from_str(&buf).unwrap()
 }
 
-/// Makes a `&[u16]` const with a null terminator.
-///
-/// * **Usage:**
-///   * Statement: `utf16_null!(IDENT, string_literal);`
-///   * Expands to: `pub const IDENT: &[u16] = utf16_string_with_a_null;`
+/// Turns a string literal into a `&[u16]` literal with a null on the end.
 ///
 /// If you do **not** want to have a null terminator added to the string then
 /// you should use [`utf16`](utf16).
 #[proc_macro]
 pub fn utf16_null(stream: TokenStream) -> TokenStream {
-  const USAGE: &str = "Usage: utf16_null!(ident, string_lit)";
+  const USAGE: &str = "Usage: utf16_null!(string_lit)";
 
   // This "parsing" system is janky as hell, but it doesn't depend on the
   // `quote` or `syn` crates, so we save a lot on compile time at the expense of
   // having slightly worse errors. However, since the user usually calls the
   // macro correctly and doesn't have an error, it's probably a good trade.
   let mut tt_iter = stream.into_iter();
-  let ident = match tt_iter.next().expect(USAGE) {
-    TokenTree::Ident(i) => i,
-    _ => panic!(USAGE),
-  };
-  match tt_iter.next().expect(USAGE) {
-    TokenTree::Punct(p) if p.as_char() == ',' => (),
-    _ => panic!(USAGE),
-  };
   let lit = match tt_iter.next().expect(USAGE) {
     TokenTree::Literal(lit) => lit,
     _ => panic!(USAGE),
@@ -154,10 +121,6 @@ pub fn utf16_null(stream: TokenStream) -> TokenStream {
   // Finally, instead of trying to fiddle a TokenStream with extend and all
   // that, we just write down the text of the code we wanted to have had the
   // whole time and then we use `from_str` and let the system handle it for us.
-  let buf = format!(
-    "pub const {ident}: &[u16] = &{units:?};",
-    ident = ident,
-    units = &units[..],
-  );
+  let buf = format!("&{units:?}", units = &units[..],);
   TokenStream::from_str(&buf).unwrap()
 }
