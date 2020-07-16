@@ -5,7 +5,7 @@ version = "0.0.4-alpha.0"
 repository = "https://github.com/Lokathor/utf16_lit"
 authors = ["Lokathor <zefria@gmail.com>"]
 edition = "2018"
-license = "Zlib"
+license = "Zlib OR Apache-2.0 OR MIT"
 
 [lib]
 proc-macro = true
