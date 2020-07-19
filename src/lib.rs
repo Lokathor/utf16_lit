@@ -24,11 +24,11 @@
 //! ```
 
 extern crate proc_macro;
-use core::str::FromStr;
 use proc_macro::{TokenStream, TokenTree};
 
-mod char_escape;
-use char_escape::perform_the_escaping;
+use core::str::FromStr;
+
+use std::fmt::Write;
 
 /// Turns a string literal into a `&[u16]` literal.
 ///
@@ -37,44 +37,22 @@ use char_escape::perform_the_escaping;
 #[proc_macro]
 pub fn utf16(stream: TokenStream) -> TokenStream {
   const USAGE: &str = "Usage: utf16!(string_lit)";
-
-  // This "parsing" system is janky as hell, but it doesn't depend on the
-  // `quote` or `syn` crates, so we save a lot on compile time at the expense of
-  // having slightly worse errors. However, since the user usually calls the
-  // macro correctly and doesn't have an error, it's probably a good trade.
+  
   let mut tt_iter = stream.into_iter();
   let lit = match tt_iter.next().expect(USAGE) {
     TokenTree::Literal(lit) => lit,
     _ => panic!(USAGE),
   };
+  // we expect only one string literal per invocation.
   assert!(tt_iter.next().is_none(), USAGE);
 
-  // The literal, if it's a string literal, will have the double quotes on the
-  // edges, which we want to strip off of the value we're going to encode as
-  // utf16. The end we can cheaply strip off with `pop`, but for the start it
-  // would be expensive to delete the 0th char and move all the rest. Instead,
-  // we want to simply start the encoding just after the double quote position.
-  let mut lit_string = lit.to_string();
-  assert!(lit_string.pop() == Some('"'), USAGE);
-  assert!(lit_string.chars().nth(0) == Some('"'), USAGE);
-
-  // Also we have to convert any escape sequences within the string into the
-  // correct characters ourselves because the `proc_macro` crate doesn't do that
-  // for us.
-  let all_the_chars = perform_the_escaping(&lit_string[1..]);
-  let mut units: Vec<u16> = Vec::with_capacity(all_the_chars.len() * 2);
-  let mut encode_buf = [0_u16; 2];
-  for ch in all_the_chars {
-    for u in ch.encode_utf16(&mut encode_buf) {
-      units.push(*u);
-    }
-  }
-
-  // Finally, instead of trying to fiddle a TokenStream with extend and all
-  // that, we just write down the text of the code we wanted to have had the
-  // whole time and then we use `from_str` and let the system handle it for us.
-  let buf = format!("&{units:?}", units = &units[..],);
-  TokenStream::from_str(&buf).unwrap()
+  let lit_string = format!("{}", lit);
+  // right now we only support double quoted strings
+  assert!(lit_string.as_bytes().first() == Some(&b'"'), USAGE);
+  assert!(lit_string.as_bytes().last() == Some(&b'"'), USAGE);
+  let lit_str = &lit_string[1..lit_string.len()-1];
+  
+  str_to_utf16_units_tokenstream(lit_str)
 }
 
 /// Turns a string literal into a `&[u16]` literal with a null on the end.
@@ -83,44 +61,144 @@ pub fn utf16(stream: TokenStream) -> TokenStream {
 /// you should use [`utf16!`](utf16!).
 #[proc_macro]
 pub fn utf16_null(stream: TokenStream) -> TokenStream {
-  const USAGE: &str = "Usage: utf16_null!(string_lit)";
-
-  // This "parsing" system is janky as hell, but it doesn't depend on the
-  // `quote` or `syn` crates, so we save a lot on compile time at the expense of
-  // having slightly worse errors. However, since the user usually calls the
-  // macro correctly and doesn't have an error, it's probably a good trade.
+  const USAGE: &str = "Usage: utf16!(string_lit)";
+  
   let mut tt_iter = stream.into_iter();
   let lit = match tt_iter.next().expect(USAGE) {
     TokenTree::Literal(lit) => lit,
     _ => panic!(USAGE),
   };
+  // we expect only one string literal per invocation.
   assert!(tt_iter.next().is_none(), USAGE);
 
-  // The literal, if it's a string literal, will have the double quotes on the
-  // edges, which we want to strip off of the value we're going to encode as
-  // utf16. The end we can cheaply strip off with `pop`, but for the start it
-  // would be expensive to delete the 0th char and move all the rest. Instead,
-  // we want to simply start the encoding just after the double quote position.
-  let mut lit_string = lit.to_string();
-  assert!(lit_string.pop() == Some('"'), USAGE);
-  assert!(lit_string.chars().nth(0) == Some('"'), USAGE);
+  let mut lit_string = format!("{}", lit);
+  // right now we only support double quoted strings
+  assert!(lit_string.as_bytes().first() == Some(&b'"'), USAGE);
+  assert!(lit_string.as_bytes().last() == Some(&b'"'), USAGE);
+  // we need a null on the end, so we just reuse the end of this string.
+  lit_string.pop();
+  lit_string.push('\0');
+  let lit_str = &lit_string[1..];
+  
+  str_to_utf16_units_tokenstream(lit_str)
+}
 
-  // Also we have to convert any escape sequences within the string into the
-  // correct characters ourselves because the `proc_macro` crate doesn't do that
-  // for us.
-  let all_the_chars = perform_the_escaping(&lit_string[1..]);
-  let mut units: Vec<u16> = Vec::with_capacity(all_the_chars.len() * 2);
+fn str_to_utf16_units_tokenstream(s: &str) -> TokenStream {
   let mut encode_buf = [0_u16; 2];
-  for ch in all_the_chars {
-    for u in ch.encode_utf16(&mut encode_buf) {
-      units.push(*u);
+  let mut buf = String::with_capacity(s.as_bytes().len() * 8 + 10);
+  //
+  buf.push_str("&[");
+  for char_escape in CharEscapeIterator::new(s.chars()) {
+    match char_escape {
+      CharEscape::Escaped(ch) | CharEscape::Literal(ch) => {
+        for unit in ch.encode_utf16(&mut encode_buf) {
+          let _cant_fail = write!(buf, "{},", unit);
+        }
+      },
+      other => panic!("Illegal character escape sequence: {:?}", other),
     }
   }
-  units.push(0);
-
-  // Finally, instead of trying to fiddle a TokenStream with extend and all
-  // that, we just write down the text of the code we wanted to have had the
-  // whole time and then we use `from_str` and let the system handle it for us.
-  let buf = format!("&{units:?}", units = &units[..],);
+  buf.push_str("]");
+  //
   TokenStream::from_str(&buf).unwrap()
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum CharEscape {
+  Literal(char),
+  Escaped(char),
+  Improper(char),
+  DanglingBackslash,
+}
+
+#[derive(Debug, Clone, Copy)]
+struct CharEscapeIterator<I> {
+  it: I,
+}
+
+impl<I> CharEscapeIterator<I>
+where
+  I: Iterator<Item = char>,
+{
+  fn new(it: I) -> Self {
+    Self { it }
+  }
+}
+
+impl<I> Iterator for CharEscapeIterator<I>
+where
+  I: Iterator<Item = char>,
+{
+  type Item = CharEscape;
+  fn next(&mut self) -> Option<CharEscape> {
+    if let Some(ch) = self.it.next() {
+      match ch {
+        '\\' => {
+          if let Some(follow) = self.it.next() {
+            match follow {
+              '0' => Some(CharEscape::Escaped('\0')),
+              'n' => Some(CharEscape::Escaped('\n')),
+              'r' => Some(CharEscape::Escaped('\r')),
+              't' => Some(CharEscape::Escaped('\t')),
+              '\\' => Some(CharEscape::Escaped('\\')),
+              '\'' => Some(CharEscape::Escaped('\'')),
+              '"' => Some(CharEscape::Escaped('"')),
+              'x' => {
+                let mut inner = || {
+                  let d1 = self.it.next()?;
+                  let d2 = self.it.next()?;
+                  let mut temp = [0; 4];
+                  let a = u8::from_str_radix(d1.encode_utf8(&mut temp), 16).ok()?;
+                  let b = u8::from_str_radix(d2.encode_utf8(&mut temp), 16).ok()?;
+                  let c = a << 4 | b;
+                  if c < 128 {
+                    Some(CharEscape::Escaped(c as char))
+                  } else {
+                    None
+                  }
+                };
+                inner().or(Some(CharEscape::Improper('x')))
+              }
+              'u' => {
+                let mut inner = || {
+                  let open_brace = self.it.next();
+                  if open_brace != Some('{') {
+                    return None;
+                  }
+                  let mut buffer = [0_u8; 6];
+                  let mut buffer_index = 0;
+                  loop {
+                    let next_ch = self.it.next()?;
+                    if next_ch == '}' {
+                      break;
+                    } else if buffer_index >= buffer.len() {
+                      // we have to keep eating until we see '}', so for now
+                      // just signal failure and we check after the loop.
+                      buffer_index = usize::max_value();
+                    } else {
+                      buffer[buffer_index] = next_ch as u8;
+                      buffer_index += 1;
+                    }
+                  }
+                  if buffer_index == usize::max_value() {
+                    return None;
+                  }
+                  let s = core::str::from_utf8(&buffer[..buffer_index]).ok()?;
+                  let u = u32::from_str_radix(s, 16).ok()?;
+                  core::char::from_u32(u).map(CharEscape::Escaped)
+                };
+                inner().or(Some(CharEscape::Improper('u')))
+              }
+              imp => Some(CharEscape::Improper(imp)),
+            }
+          } else {
+            Some(CharEscape::DanglingBackslash)
+          }
+        }
+        other => Some(CharEscape::Literal(other)),
+      }
+    } else {
+      None
+    }
+  }
 }

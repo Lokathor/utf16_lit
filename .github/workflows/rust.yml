@@ -9,6 +9,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
+    - name: Set Rust Version
+      run: rustup default 1.45.0
     - name: Display Versions
       run: cargo --version && rustc --version
     - name: Build
