@@ -33,7 +33,7 @@ use char_escape::perform_the_escaping;
 /// Turns a string literal into a `&[u16]` literal.
 ///
 /// If you want to have a "null terminated" string (such as for some parts of
-/// Windows FFI) then you should use [`utf16_null`](utf16_null).
+/// Windows FFI) then you should use [`utf16_null!`](utf16_null!).
 #[proc_macro]
 pub fn utf16(stream: TokenStream) -> TokenStream {
   const USAGE: &str = "Usage: utf16!(string_lit)";
@@ -80,7 +80,7 @@ pub fn utf16(stream: TokenStream) -> TokenStream {
 /// Turns a string literal into a `&[u16]` literal with a null on the end.
 ///
 /// If you do **not** want to have a null terminator added to the string then
-/// you should use [`utf16`](utf16).
+/// you should use [`utf16!`](utf16!).
 #[proc_macro]
 pub fn utf16_null(stream: TokenStream) -> TokenStream {
   const USAGE: &str = "Usage: utf16_null!(string_lit)";
