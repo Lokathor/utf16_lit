@@ -37,7 +37,7 @@ use std::fmt::Write;
 #[proc_macro]
 pub fn utf16(stream: TokenStream) -> TokenStream {
   const USAGE: &str = "Usage: utf16!(string_lit)";
-  
+
   let mut tt_iter = stream.into_iter();
   let lit = match tt_iter.next().expect(USAGE) {
     TokenTree::Literal(lit) => lit,
@@ -50,8 +50,8 @@ pub fn utf16(stream: TokenStream) -> TokenStream {
   // right now we only support double quoted strings
   assert!(lit_string.as_bytes().first() == Some(&b'"'), USAGE);
   assert!(lit_string.as_bytes().last() == Some(&b'"'), USAGE);
-  let lit_str = &lit_string[1..lit_string.len()-1];
-  
+  let lit_str = &lit_string[1..lit_string.len() - 1];
+
   str_to_utf16_units_tokenstream(lit_str)
 }
 
@@ -62,7 +62,7 @@ pub fn utf16(stream: TokenStream) -> TokenStream {
 #[proc_macro]
 pub fn utf16_null(stream: TokenStream) -> TokenStream {
   const USAGE: &str = "Usage: utf16!(string_lit)";
-  
+
   let mut tt_iter = stream.into_iter();
   let lit = match tt_iter.next().expect(USAGE) {
     TokenTree::Literal(lit) => lit,
@@ -79,7 +79,7 @@ pub fn utf16_null(stream: TokenStream) -> TokenStream {
   lit_string.pop();
   lit_string.push('\0');
   let lit_str = &lit_string[1..];
-  
+
   str_to_utf16_units_tokenstream(lit_str)
 }
 
@@ -94,7 +94,7 @@ fn str_to_utf16_units_tokenstream(s: &str) -> TokenStream {
         for unit in ch.encode_utf16(&mut encode_buf) {
           let _cant_fail = write!(buf, "{},", unit);
         }
-      },
+      }
       other => panic!("Illegal character escape sequence: {:?}", other),
     }
   }
@@ -148,8 +148,10 @@ where
                   let d1 = self.it.next()?;
                   let d2 = self.it.next()?;
                   let mut temp = [0; 4];
-                  let a = u8::from_str_radix(d1.encode_utf8(&mut temp), 16).ok()?;
-                  let b = u8::from_str_radix(d2.encode_utf8(&mut temp), 16).ok()?;
+                  let a =
+                    u8::from_str_radix(d1.encode_utf8(&mut temp), 16).ok()?;
+                  let b =
+                    u8::from_str_radix(d2.encode_utf8(&mut temp), 16).ok()?;
                   let c = a << 4 | b;
                   if c < 128 {
                     Some(CharEscape::Escaped(c as char))
