@@ -46,13 +46,18 @@ pub fn utf16(stream: TokenStream) -> TokenStream {
   // we expect only one string literal per invocation.
   assert!(tt_iter.next().is_none(), USAGE);
 
-  let lit_string = format!("{}", lit);
+  let mut lit_string = format!("{}", lit);
+  let is_raw = lit_string.starts_with("r");
+  if is_raw {
+    lit_string.remove(0);
+  }
+
   // right now we only support double quoted strings
   assert!(lit_string.as_bytes().first() == Some(&b'"'), USAGE);
   assert!(lit_string.as_bytes().last() == Some(&b'"'), USAGE);
   let lit_str = &lit_string[1..lit_string.len() - 1];
 
-  str_to_utf16_units_tokenstream(lit_str)
+  str_to_utf16_units_tokenstream(lit_str, is_raw)
 }
 
 /// Turns a string literal into a `&[u16]` literal with a null on the end.
@@ -72,6 +77,11 @@ pub fn utf16_null(stream: TokenStream) -> TokenStream {
   assert!(tt_iter.next().is_none(), USAGE);
 
   let mut lit_string = format!("{}", lit);
+  let is_raw = lit_string.starts_with("r");
+  if is_raw {
+    lit_string.remove(0);
+  }
+
   // right now we only support double quoted strings
   assert!(lit_string.as_bytes().first() == Some(&b'"'), USAGE);
   assert!(lit_string.as_bytes().last() == Some(&b'"'), USAGE);
@@ -80,24 +90,34 @@ pub fn utf16_null(stream: TokenStream) -> TokenStream {
   lit_string.push('\0');
   let lit_str = &lit_string[1..];
 
-  str_to_utf16_units_tokenstream(lit_str)
+  str_to_utf16_units_tokenstream(lit_str, is_raw)
 }
 
-fn str_to_utf16_units_tokenstream(s: &str) -> TokenStream {
+fn str_to_utf16_units_tokenstream(s: &str, is_raw: bool) -> TokenStream {
   let mut encode_buf = [0_u16; 2];
   let mut buf = String::with_capacity(s.as_bytes().len() * 8 + 10);
   //
   buf.push_str("&[");
-  for char_escape in CharEscapeIterator::new(s.chars()) {
-    match char_escape {
-      CharEscape::Escaped(ch) | CharEscape::Literal(ch) => {
-        for unit in ch.encode_utf16(&mut encode_buf) {
-          let _cant_fail = write!(buf, "{},", unit);
-        }
+
+  if is_raw {
+    for c in s.chars() {
+      for unit in c.encode_utf16(&mut encode_buf) {
+        let _cant_fail = write!(buf, "{},", unit);
       }
-      other => panic!("Illegal character escape sequence: {:?}", other),
+    }
+  } else {
+    for char_escape in CharEscapeIterator::new(s.chars()) {
+      match char_escape {
+        CharEscape::Escaped(ch) | CharEscape::Literal(ch) => {
+          for unit in ch.encode_utf16(&mut encode_buf) {
+            let _cant_fail = write!(buf, "{},", unit);
+          }
+        }
+        other => panic!("Illegal character escape sequence: {:?}", other),
+      }
     }
   }
+
   buf.push_str("]");
   //
   TokenStream::from_str(&buf).unwrap()
