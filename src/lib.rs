@@ -50,6 +50,10 @@ pub fn utf16(stream: TokenStream) -> TokenStream {
   let is_raw = lit_string.starts_with("r");
   if is_raw {
     lit_string.remove(0);
+    while lit_string.chars().nth(0) == Some('#') {
+      lit_string.pop();
+      lit_string.remove(0);
+    }
   }
 
   // right now we only support double quoted strings
@@ -80,6 +84,10 @@ pub fn utf16_null(stream: TokenStream) -> TokenStream {
   let is_raw = lit_string.starts_with("r");
   if is_raw {
     lit_string.remove(0);
+    while lit_string.chars().nth(0) == Some('#') {
+      lit_string.pop();
+      lit_string.remove(0);
+    }
   }
 
   // right now we only support double quoted strings

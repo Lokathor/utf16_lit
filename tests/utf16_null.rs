@@ -64,4 +64,6 @@ fn test_escaped_unicode() {
 fn test_raw_string() {
   let normal: Vec<u16> = r"\".encode_utf16().chain(Some(0)).collect();
   assert_eq!(normal, utf16_null!(r"\"));
+  assert_eq!(normal, utf16_null!(r#"\"#));
+  assert_eq!(normal, utf16_null!(r##"\"##));
 }
