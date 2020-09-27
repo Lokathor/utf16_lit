@@ -1,5 +1,3 @@
-#![allow(bad_style)]
-
 //! Provides a proc-macro for making utf-16 literals.
 //!
 //! ```rust
@@ -23,212 +21,95 @@
 //! }
 //! ```
 
-extern crate proc_macro;
-use proc_macro::{TokenStream, TokenTree};
-
-use core::str::FromStr;
-
-use std::fmt::Write;
-
-/// Turns a string literal into a `&[u16]` literal.
-///
-/// If you want to have a "null terminated" string (such as for some parts of
-/// Windows FFI) then you should use [`utf16_null!`](utf16_null!).
-#[proc_macro]
-pub fn utf16(stream: TokenStream) -> TokenStream {
-  const USAGE: &str = "Usage: utf16!(string_lit)";
-
-  let mut tt_iter = stream.into_iter();
-  let lit = match tt_iter.next().expect(USAGE) {
-    TokenTree::Literal(lit) => lit,
-    _ => panic!(USAGE),
-  };
-  // we expect only one string literal per invocation.
-  assert!(tt_iter.next().is_none(), USAGE);
-
-  let mut lit_string = format!("{}", lit);
-  let is_raw = lit_string.starts_with("r");
-  if is_raw {
-    lit_string.remove(0);
-    while lit_string.chars().nth(0) == Some('#') {
-      lit_string.pop();
-      lit_string.remove(0);
-    }
-  }
-
-  // right now we only support double quoted strings
-  assert!(lit_string.as_bytes().first() == Some(&b'"'), USAGE);
-  assert!(lit_string.as_bytes().last() == Some(&b'"'), USAGE);
-  let lit_str = &lit_string[1..lit_string.len() - 1];
-
-  str_to_utf16_units_tokenstream(lit_str, is_raw)
-}
-
-/// Turns a string literal into a `&[u16]` literal with a null on the end.
-///
-/// If you do **not** want to have a null terminator added to the string then
-/// you should use [`utf16!`](utf16!).
-#[proc_macro]
-pub fn utf16_null(stream: TokenStream) -> TokenStream {
-  const USAGE: &str = "Usage: utf16!(string_lit)";
-
-  let mut tt_iter = stream.into_iter();
-  let lit = match tt_iter.next().expect(USAGE) {
-    TokenTree::Literal(lit) => lit,
-    _ => panic!(USAGE),
-  };
-  // we expect only one string literal per invocation.
-  assert!(tt_iter.next().is_none(), USAGE);
-
-  let mut lit_string = format!("{}", lit);
-  let is_raw = lit_string.starts_with("r");
-  if is_raw {
-    lit_string.remove(0);
-    while lit_string.chars().nth(0) == Some('#') {
-      lit_string.pop();
-      lit_string.remove(0);
-    }
-  }
-
-  // right now we only support double quoted strings
-  assert!(lit_string.as_bytes().first() == Some(&b'"'), USAGE);
-  assert!(lit_string.as_bytes().last() == Some(&b'"'), USAGE);
-  // we need a null on the end, so we just reuse the end of this string.
-  lit_string.pop();
-  lit_string.push('\0');
-  let lit_str = &lit_string[1..];
-
-  str_to_utf16_units_tokenstream(lit_str, is_raw)
-}
-
-fn str_to_utf16_units_tokenstream(s: &str, is_raw: bool) -> TokenStream {
-  let mut encode_buf = [0_u16; 2];
-  let mut buf = String::with_capacity(s.as_bytes().len() * 8 + 10);
-  //
-  buf.push_str("&[");
-
-  if is_raw {
-    for c in s.chars() {
-      for unit in c.encode_utf16(&mut encode_buf) {
-        let _cant_fail = write!(buf, "{},", unit);
-      }
-    }
-  } else {
-    for char_escape in CharEscapeIterator::new(s.chars()) {
-      match char_escape {
-        CharEscape::Escaped(ch) | CharEscape::Literal(ch) => {
-          for unit in ch.encode_utf16(&mut encode_buf) {
-            let _cant_fail = write!(buf, "{},", unit);
-          }
-        }
-        other => panic!("Illegal character escape sequence: {:?}", other),
-      }
-    }
-  }
-
-  buf.push_str("]");
-  //
-  TokenStream::from_str(&buf).unwrap()
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum CharEscape {
-  Literal(char),
-  Escaped(char),
-  Improper(char),
-  DanglingBackslash,
-}
-
-#[derive(Debug, Clone, Copy)]
-struct CharEscapeIterator<I> {
-  it: I,
-}
-
-impl<I> CharEscapeIterator<I>
-where
-  I: Iterator<Item = char>,
-{
-  fn new(it: I) -> Self {
-    Self { it }
-  }
-}
-
-impl<I> Iterator for CharEscapeIterator<I>
-where
-  I: Iterator<Item = char>,
-{
-  type Item = CharEscape;
-  fn next(&mut self) -> Option<CharEscape> {
-    if let Some(ch) = self.it.next() {
-      match ch {
-        '\\' => {
-          if let Some(follow) = self.it.next() {
-            match follow {
-              '0' => Some(CharEscape::Escaped('\0')),
-              'n' => Some(CharEscape::Escaped('\n')),
-              'r' => Some(CharEscape::Escaped('\r')),
-              't' => Some(CharEscape::Escaped('\t')),
-              '\\' => Some(CharEscape::Escaped('\\')),
-              '\'' => Some(CharEscape::Escaped('\'')),
-              '"' => Some(CharEscape::Escaped('"')),
-              'x' => {
-                let mut inner = || {
-                  let d1 = self.it.next()?;
-                  let d2 = self.it.next()?;
-                  let mut temp = [0; 4];
-                  let a =
-                    u8::from_str_radix(d1.encode_utf8(&mut temp), 16).ok()?;
-                  let b =
-                    u8::from_str_radix(d2.encode_utf8(&mut temp), 16).ok()?;
-                  let c = a << 4 | b;
-                  if c < 128 {
-                    Some(CharEscape::Escaped(c as char))
-                  } else {
-                    None
-                  }
-                };
-                inner().or(Some(CharEscape::Improper('x')))
+macro_rules! imp {
+  ($(
+    $(#[$m:meta])*
+    $name:ident has $n:literal trailing zeroes
+  )*) => {
+    $(
+      $(#[$m])*
+      #[macro_export]
+      macro_rules! $name {
+        ($text:expr) => {{
+          // Try to avoid collisions with `text`'s scope
+          const __SWEIRFOH2387OPC: &str = $text;
+          const UTF8: &str = __SWEIRFOH2387OPC;
+          const UTF16: &[u16] = &{
+            let mut buffer = [0u16; $crate::internals::length_as_utf16(UTF8) + $n];
+            let mut bytes = UTF8.as_bytes();
+            let mut i = 0;
+            while let Some((ch, rest)) = $crate::internals::next_code_point(bytes) {
+              bytes = rest;
+              // https://doc.rust-lang.org/std/primitive.char.html#method.encode_utf16
+              if ch & 0xFFFF == ch {
+                buffer[i] = ch as u16;
+                i += 1;
+              } else {
+                let code = ch - 0x1_0000;
+                buffer[i] = 0xD800 | ((code >> 10) as u16);
+                buffer[i + 1] = 0xDC00 | ((code as u16) & 0x3FF);
+                i += 2;
               }
-              'u' => {
-                let mut inner = || {
-                  let open_brace = self.it.next();
-                  if open_brace != Some('{') {
-                    return None;
-                  }
-                  let mut buffer = [0_u8; 6];
-                  let mut buffer_index = 0;
-                  loop {
-                    let next_ch = self.it.next()?;
-                    if next_ch == '}' {
-                      break;
-                    } else if buffer_index >= buffer.len() {
-                      // we have to keep eating until we see '}', so for now
-                      // just signal failure and we check after the loop.
-                      buffer_index = usize::max_value();
-                    } else {
-                      buffer[buffer_index] = next_ch as u8;
-                      buffer_index += 1;
-                    }
-                  }
-                  if buffer_index == usize::max_value() {
-                    return None;
-                  }
-                  let s = core::str::from_utf8(&buffer[..buffer_index]).ok()?;
-                  let u = u32::from_str_radix(s, 16).ok()?;
-                  core::char::from_u32(u).map(CharEscape::Escaped)
-                };
-                inner().or(Some(CharEscape::Improper('u')))
-              }
-              imp => Some(CharEscape::Improper(imp)),
             }
-          } else {
-            Some(CharEscape::DanglingBackslash)
-          }
-        }
-        other => Some(CharEscape::Literal(other)),
+            buffer
+          };
+          UTF16
+        }};
       }
-    } else {
-      None
+    )*
+  }
+}
+
+imp! {
+  /// Turns a string literal into a `&[u16]` literal.
+  ///
+  /// If you want to have a "null terminated" string (such as for some parts of
+  /// Windows FFI) then you should use [`utf16_null!`](utf16_null!).
+  utf16 has 0 trailing zeroes
+
+  /// Turns a string literal into a `&[u16]` literal with a null on the end.
+  ///
+  /// If you do **not** want to have a null terminator added to the string then
+  /// you should use [`utf16!`](utf16!).
+  utf16_null has 1 trailing zeroes
+}
+
+#[doc(hidden)]
+pub mod internals {
+  // A const implementation of https://github.com/rust-lang/rust/blob/d902752866cbbdb331e3cf28ff6bba86ab0f6c62/library/core/src/str/mod.rs#L509-L537
+  // Assumes `utf8` is a valid &str
+  pub const fn next_code_point(utf8: &[u8]) -> Option<(u32, &[u8])> {
+    const CONT_MASK: u8 = 0b0011_1111;
+    match utf8 {
+      [one @ 0..=0b0111_1111, rest @ ..] => Some((*one as u32, rest)),
+      [one @ 0b1100_0000..=0b1101_1111, two, rest @ ..] => Some((
+        (((*one & 0b0001_1111) as u32) << 6) | ((*two & CONT_MASK) as u32),
+        rest,
+      )),
+      [one @ 0b1110_0000..=0b1110_1111, two, three, rest @ ..] => Some((
+        (((*one & 0b0000_1111) as u32) << 12)
+          | (((*two & CONT_MASK) as u32) << 6)
+          | ((*three & CONT_MASK) as u32),
+        rest,
+      )),
+      [one, two, three, four, rest @ ..] => Some((
+        (((*one & 0b0000_0111) as u32) << 18)
+          | (((*two & CONT_MASK) as u32) << 12)
+          | (((*three & CONT_MASK) as u32) << 6)
+          | ((*four & CONT_MASK) as u32),
+        rest,
+      )),
+      [..] => None,
     }
+  }
+  // A const implementation of `s.chars().map(|ch| ch.len_utf16()).sum()`
+  pub const fn length_as_utf16(s: &str) -> usize {
+    let mut bytes = s.as_bytes();
+    let mut len = 0;
+    while let Some((ch, rest)) = next_code_point(bytes) {
+      bytes = rest;
+      len += if (ch & 0xFFFF) == ch { 1 } else { 2 };
+    }
+    len
   }
 }
