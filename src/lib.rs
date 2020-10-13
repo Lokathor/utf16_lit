@@ -31,7 +31,8 @@ macro_rules! imp {
       #[macro_export]
       macro_rules! $name {
         ($text:expr) => {{
-          // Try to avoid collisions with `text`'s scope
+          // Here we pick a name highly unlikely to exist in the scope
+          // that $text came from, which prevents a potential const eval cycle error.
           const __SWEIRFOH2387OPC: &str = $text;
           const UTF8: &str = __SWEIRFOH2387OPC;
           const UTF16: &[u16] = &{
