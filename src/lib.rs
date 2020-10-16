@@ -3,9 +3,9 @@
 //! ```rust
 //! use utf16_lit::{utf16, utf16_null};
 //!
-//! const EXAMPLE: &[u16] = utf16!("example");
+//! const EXAMPLE: &[u16] = &utf16!("example");
 //!
-//! const EXAMPLE_NULL: &[u16] = utf16_null!("example");
+//! const EXAMPLE_NULL: &[u16] = &utf16_null!("example");
 //!
 //! fn main() {
 //!   let v: Vec<u16> = "example".encode_utf16().collect();
@@ -35,8 +35,9 @@ macro_rules! imp {
           // that $text came from, which prevents a potential const eval cycle error.
           const __SWEIRFOH2387OPC: &str = $text;
           const UTF8: &str = __SWEIRFOH2387OPC;
-          const UTF16: &[u16] = &{
-            let mut buffer = [0u16; $crate::internals::length_as_utf16(UTF8) + $n];
+          const LEN: usize = $crate::internals::length_as_utf16(UTF8) + $n;
+          const UTF16: [u16; LEN] = {
+            let mut buffer = [0u16; LEN];
             let mut bytes = UTF8.as_bytes();
             let mut i = 0;
             while let Some((ch, rest)) = $crate::internals::next_code_point(bytes) {
