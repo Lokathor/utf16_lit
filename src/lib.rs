@@ -1,3 +1,4 @@
+#![no_std]
 //! Provides a proc-macro for making utf-16 literals.
 //!
 //! ```rust
