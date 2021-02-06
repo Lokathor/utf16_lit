@@ -1,6 +1,8 @@
 #![no_std]
 //! Provides a proc-macro for making utf-16 literals.
 //!
+//! Outputs are arrays of the correct size. Prefix the macro with `&` to make slices.
+//!
 //! ```rust
 //! use utf16_lit::{utf16, utf16_null};
 //!
@@ -34,11 +36,11 @@ macro_rules! imp {
         ($text:expr) => {{
           // Here we pick a name highly unlikely to exist in the scope
           // that $text came from, which prevents a potential const eval cycle error.
-          const __SWEIRFOH2387OPC: &str = $text;
-          const UTF8: &str = __SWEIRFOH2387OPC;
-          const LEN: usize = $crate::internals::length_as_utf16(UTF8) + $n;
-          const UTF16: [u16; LEN] = {
-            let mut buffer = [0u16; LEN];
+          const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8: &str = $text;
+          const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN: usize =
+            $crate::internals::length_as_utf16(ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8) + $n;
+          const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF16: [u16; ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN] = {
+            let mut buffer = [0u16; ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN];
             let mut bytes = UTF8.as_bytes();
             let mut i = 0;
             while let Some((ch, rest)) = $crate::internals::next_code_point(bytes) {
@@ -56,7 +58,7 @@ macro_rules! imp {
             }
             buffer
           };
-          UTF16
+          ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF16
         }};
       }
     )*
