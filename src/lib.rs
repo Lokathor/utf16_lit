@@ -41,7 +41,7 @@ macro_rules! imp {
             $crate::internals::length_as_utf16(ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8) + $n;
           const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF16: [u16; ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN] = {
             let mut buffer = [0u16; ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN];
-            let mut bytes = UTF8.as_bytes();
+            let mut bytes = ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8.as_bytes();
             let mut i = 0;
             while let Some((ch, rest)) = $crate::internals::next_code_point(bytes) {
               bytes = rest;
