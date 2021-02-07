@@ -1,7 +1,8 @@
 #![no_std]
-//! Provides a proc-macro for making utf-16 literals.
+//! Provides a macro_rules for making utf-16 literals.
 //!
-//! Outputs are arrays of the correct size. Prefix the macro with `&` to make slices.
+//! Outputs are arrays of the correct size. Prefix the macro with `&` to make
+//! slices.
 //!
 //! ```rust
 //! use utf16_lit::{utf16, utf16_null};
