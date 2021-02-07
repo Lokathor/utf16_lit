@@ -1,6 +1,6 @@
 [package]
 name = "utf16_lit"
-description = "Proc-macro to make utf-16 literals."
+description = "macro_rules to make utf-16 literals."
 version = "2.0.1-alpha.0"
 repository = "https://github.com/Lokathor/utf16_lit"
 authors = ["Lokathor <zefria@gmail.com>"]
