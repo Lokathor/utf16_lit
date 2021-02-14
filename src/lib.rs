@@ -67,13 +67,13 @@ macro_rules! imp {
 }
 
 imp! {
-  /// Turns a string literal into a `&[u16]` literal.
+  /// Turns a string literal into a `u16` array literal (`[u16; N]`).
   ///
   /// If you want to have a "null terminated" string (such as for some parts of
   /// Windows FFI) then you should use [`utf16_null!`](utf16_null!).
   utf16 has 0 trailing zeroes
 
-  /// Turns a string literal into a `&[u16]` literal with a null on the end.
+  /// Turns a string literal into a `u16` array literal (`[u16; N]`) with a trailing `0`.
   ///
   /// If you do **not** want to have a null terminator added to the string then
   /// you should use [`utf16!`](utf16!).

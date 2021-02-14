@@ -1,5 +1,13 @@
 # Changelog
 
+# 2.0.2
+
+* More docs!
+
+# 2.0.1
+
+* Correct the docs.
+
 # 2.0.0
 
 * Thanks to wonderful work by [Plecra](https://github.com/Plecra) the crate is now a macro_rules instead of a proc-macro.
