@@ -42,20 +42,19 @@ macro_rules! imp {
             const UTF8: &str = __UTF16_LIT_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8;
             const LEN: usize = $crate::internals::length_as_utf16(UTF8) + $n;
             const UTF16: [u16; LEN] = {
-              let mut buffer = [0u16; LEN];
+              let mut buffer = [0; LEN];
               let mut bytes = UTF8.as_bytes();
               let mut i = 0;
               while let Some((ch, rest)) = $crate::internals::next_code_point(bytes) {
                 bytes = rest;
                 // https://doc.rust-lang.org/std/primitive.char.html#method.encode_utf16
-                if ch & 0xFFFF == ch {
-                  buffer[i] = ch as u16;
-                  i += 1;
-                } else {
-                  let code = ch - 0x1_0000;
+                if let Some(code) = ch.checked_sub(1_0000) {
                   buffer[i] = 0xD800 | ((code >> 10) as u16);
                   buffer[i + 1] = 0xDC00 | ((code as u16) & 0x3FF);
                   i += 2;
+                } else {
+                  buffer[i] = ch as u16;
+                  i += 1;
                 }
               }
               buffer
