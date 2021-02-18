@@ -48,7 +48,8 @@ macro_rules! imp {
               while let Some((ch, rest)) = $crate::internals::next_code_point(bytes) {
                 bytes = rest;
                 // https://doc.rust-lang.org/std/primitive.char.html#method.encode_utf16
-                if let Some(code) = ch.checked_sub(1_0000) {
+                if ch >= 10_000 {
+                  let code = ch - 10_000;
                   buffer[i] = 0xD800 | ((code >> 10) as u16);
                   buffer[i + 1] = 0xDC00 | ((code as u16) & 0x3FF);
                   i += 2;
