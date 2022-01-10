@@ -37,29 +37,32 @@ macro_rules! imp {
         ($text:expr) => {{
           // Here we pick a name highly unlikely to exist in the scope
           // that $text came from, which prevents a potential const eval cycle error.
-          const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8: &str = $text;
-          const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN: usize =
-            $crate::internals::length_as_utf16(ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8) + $n;
-          const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF16: [u16; ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN] = {
-            let mut buffer = [0u16; ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN];
-            let mut bytes = ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8.as_bytes();
-            let mut i = 0;
-            while let Some((ch, rest)) = $crate::internals::next_code_point(bytes) {
-              bytes = rest;
-              // https://doc.rust-lang.org/std/primitive.char.html#method.encode_utf16
-              if ch & 0xFFFF == ch {
-                buffer[i] = ch as u16;
-                i += 1;
-              } else {
-                let code = ch - 0x1_0000;
-                buffer[i] = 0xD800 | ((code >> 10) as u16);
-                buffer[i + 1] = 0xDC00 | ((code as u16) & 0x3FF);
-                i += 2;
+          const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8: &$crate::internals::core::primitive::str = $text;
+          {
+            use $crate::internals::core::prelude::v1::*;
+            const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN: usize =
+              $crate::internals::length_as_utf16(ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8) + $n;
+            const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF16: [u16; ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN] = {
+              let mut buffer = [0u16; ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN];
+              let mut bytes = ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8.as_bytes();
+              let mut i = 0;
+              while let Some((ch, rest)) = $crate::internals::next_code_point(bytes) {
+                bytes = rest;
+                // https://doc.rust-lang.org/std/primitive.char.html#method.encode_utf16
+                if ch & 0xFFFF == ch {
+                  buffer[i] = ch as u16;
+                  i += 1;
+                } else {
+                  let code = ch - 0x1_0000;
+                  buffer[i] = 0xD800 | ((code >> 10) as u16);
+                  buffer[i + 1] = 0xDC00 | ((code as u16) & 0x3FF);
+                  i += 2;
+                }
               }
-            }
-            buffer
-          };
-          ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF16
+              buffer
+            };
+            ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF16
+          }
         }};
       }
     )*
@@ -80,8 +83,10 @@ imp! {
   utf16_null has 1 trailing zeroes
 }
 
+/// Not part of the public API.
 #[doc(hidden)]
 pub mod internals {
+  pub use ::core;
   // A const implementation of https://github.com/rust-lang/rust/blob/d902752866cbbdb331e3cf28ff6bba86ab0f6c62/library/core/src/str/mod.rs#L509-L537
   // Assumes `utf8` is a valid &str
   pub const fn next_code_point(utf8: &[u8]) -> Option<(u32, &[u8])> {
