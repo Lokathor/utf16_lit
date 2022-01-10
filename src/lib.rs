@@ -1,4 +1,6 @@
 #![no_std]
+#![forbid(unsafe_code)]
+
 //! Provides a macro_rules for making utf-16 literals.
 //!
 //! Outputs are arrays of the correct size. Prefix the macro with `&` to make
