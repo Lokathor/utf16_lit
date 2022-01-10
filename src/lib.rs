@@ -7,9 +7,9 @@
 //! ```rust
 //! use utf16_lit::{utf16, utf16_null};
 //!
-//! const EXAMPLE: &[u16] = &utf16!("example");
+//! const EXAMPLE: &[u16] = utf16!("example");
 //!
-//! const EXAMPLE_NULL: &[u16] = &utf16_null!("example");
+//! const EXAMPLE_NULL: &[u16] = utf16_null!("example");
 //!
 //! fn main() {
 //!   let v: Vec<u16> = "example".encode_utf16().collect();
@@ -42,7 +42,7 @@ macro_rules! imp {
             use $crate::internals::core::prelude::v1::*;
             const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN: usize =
               $crate::internals::length_as_utf16(ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8) + $n;
-            const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF16: [u16; ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN] = {
+            const ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF16: &'static [u16; ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN] = {
               let mut buffer = [0u16; ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_LEN];
               let mut bytes = ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF8.as_bytes();
               let mut i = 0;
@@ -59,7 +59,7 @@ macro_rules! imp {
                   i += 2;
                 }
               }
-              buffer
+              &{ buffer }
             };
             ABC678_PREFIX_THAT_SHOULD_NEVER_CLASH_WITH_OUTER_SCOPE_UTF16
           }
@@ -70,13 +70,13 @@ macro_rules! imp {
 }
 
 imp! {
-  /// Turns a string literal into a `u16` array literal (`[u16; N]`).
+  /// Turns a string literal into a `u16` array literal static reference (`&'static [u16; N]`).
   ///
   /// If you want to have a "null terminated" string (such as for some parts of
   /// Windows FFI) then you should use [`utf16_null!`](utf16_null!).
   utf16 has 0 trailing zeroes
 
-  /// Turns a string literal into a `u16` array literal (`[u16; N]`) with a trailing `0`.
+  /// Turns a string literal into a `u16` array literal static reference (`&'static [u16; N]`) with a trailing `0`.
   ///
   /// If you do **not** want to have a null terminator added to the string then
   /// you should use [`utf16!`](utf16!).
