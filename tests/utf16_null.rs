@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use utf16_lit::utf16_null;
 
 #[test]
