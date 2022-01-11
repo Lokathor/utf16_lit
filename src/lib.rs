@@ -3,8 +3,8 @@
 
 //! Provides a macro_rules for making utf-16 literals.
 //!
-//! Outputs are arrays of the correct size. Prefix the macro with `&` to make
-//! slices.
+//! Outputs are (static references to) arrays of the correct size:
+//! `&'static [u16; LEN]`.
 //!
 //! ```rust
 //! use utf16_lit::{utf16, utf16_null};
@@ -34,6 +34,48 @@ macro_rules! imp {
   )*) => {
     $(
       $(#[$m])*
+      ///
+      /// ## Remarks
+      ///
+      ///   - This macro is usable in `const` contexts, and accepts any `const`
+      ///     input, such as the output of another macro:
+      ///
+      ///     ```rust
+      ///     use utf16_lit::utf16; // Same for `utf16_null!`
+      ///
+      ///     const UTF16_VERSION: &[u16] = utf16!(env!("CARGO_PKG_VERSION"));
+      ///     ```
+      ///
+      ///   - This macro yields a reference to an array rather than to a slice
+      ///     so that it can be `*`-copied when needed.
+      ///
+      ///   - The obtained `&'static` reference is not guaranteed to be
+      ///     unique, even if bound to a `const`. For instance, the following
+      ///     assertion may fail:
+      ///
+      ///     ```rust,no_run
+      ///     use utf16_lit::utf16; // Same for `utf16_null!`
+      ///
+      ///     const S: &[u16] = utf16!("Hey!");
+      ///     assert_eq!(S.as_ptr(), S.as_ptr()); // May fail!
+      ///     ```
+      ///
+      ///     To guarantee unicity of such a pointer, bind the `u16` contents to
+      ///     a `static` storage.
+      ///
+      ///   - To bind the `u16` contents to a `static` storage (_e.g._, for
+      ///     pointer unicity, or for FFI purposes), simply `*`-copy it:
+      ///
+      ///     ```rust
+      ///     use utf16_lit::utf16; // Same for `utf16_null!`
+      ///
+      ///     static S: [u16; utf16!("Hey!").len()] = *utf16!("Hey!");
+      ///
+      ///     assert_eq!(S.as_ptr(), S.as_ptr()); // Guaranteed to pass.
+      ///     ```
+      ///
+      ///   - The output of this macro uses the native endianness of the
+      ///     `--target` platform.
       #[macro_export]
       macro_rules! $name {
         ($text:expr) => {{
